@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 0.1.0)'
+        required: true
+        default: '0.0.0-dev'
+
+jobs:
+  build:
+    # macos-14 runner is Apple Silicon (arm64)
+    runs-on: macos-14
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            V="${{ github.event.inputs.version }}"
+          else
+            V="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Building version $V"
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Build .app bundle
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: ./scripts/make-app.sh
+
+      - name: Build DMG
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: ./scripts/make-dmg.sh
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/ClaudeTokenWidget-*.dmg
+          generate_release_notes: true
+          body: |
+            ## Install
+
+            1. Download `ClaudeTokenWidget-${{ steps.version.outputs.version }}.dmg` below.
+            2. Open the DMG, drag **Claude Token Widget** into the **Applications** folder.
+            3. **First launch:** right-click the app in Applications and choose **Open** (double-clicking shows a Gatekeeper warning because the app is ad-hoc signed, not notarized). Confirm the "Open anyway" dialog. macOS remembers this, so future launches are just double-click.
+            4. The widget floats in the top-right of your main screen. Drag it anywhere — position is remembered across restarts. Click the × to quit.
+
+            **Requires macOS 13 (Ventura) or later. Apple Silicon only.**
+
+            Shows today's Claude Code token usage, broken down by model. Reads local session logs from `~/.claude/projects/` — no credentials needed.
+
+      - name: Upload artifact (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClaudeTokenWidget-${{ steps.version.outputs.version }}
+          path: build/ClaudeTokenWidget-*.dmg
