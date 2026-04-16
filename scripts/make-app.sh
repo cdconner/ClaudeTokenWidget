@@ -11,17 +11,28 @@ VERSION="${VERSION:-0.0.0-dev}"
 BUILD_DIR="build"
 APP_DIR="$BUILD_DIR/$DISPLAY_NAME.app"
 
-echo "==> Building release binary (arm64)…"
-swift build -c release --arch arm64
+echo "==> Building release binary…"
+# Don't pass --arch: on Apple Silicon (both local and macos-14 runners) the
+# default native build produces an arm64 binary. Passing --arch arm64
+# explicitly can trip SwiftPM with "error: fatalError" on some toolchains.
+swift build -c release
 
-BIN_PATH=".build/arm64-apple-macosx/release/$EXECUTABLE"
-if [ ! -f "$BIN_PATH" ]; then
-    BIN_PATH=".build/release/$EXECUTABLE"
-fi
-if [ ! -f "$BIN_PATH" ]; then
-    echo "Error: binary not found at $BIN_PATH" >&2
+BIN_PATH=""
+for candidate in \
+    ".build/release/$EXECUTABLE" \
+    ".build/arm64-apple-macosx/release/$EXECUTABLE"
+do
+    if [ -f "$candidate" ]; then
+        BIN_PATH="$candidate"
+        break
+    fi
+done
+if [ -z "$BIN_PATH" ]; then
+    echo "Error: could not locate built binary. .build tree:" >&2
+    find .build -maxdepth 4 -name "$EXECUTABLE" >&2 || true
     exit 1
 fi
+echo "==> Found binary at $BIN_PATH"
 
 echo "==> Assembling .app bundle at $APP_DIR…"
 rm -rf "$APP_DIR"
