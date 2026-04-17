@@ -20,9 +20,6 @@ final class UsageStore: ObservableObject {
         }
     }
 
-    deinit {
-        timer?.invalidate()
-    }
 
     func refresh() {
         guard !isLoading else { return }

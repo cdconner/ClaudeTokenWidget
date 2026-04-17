@@ -14,7 +14,6 @@ struct ClaudeTokenWidgetApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var panel: FloatingPanel?
     private let store = UsageStore()
-    private var frameObservers: [NSObjectProtocol] = []
     private var signalSources: [DispatchSourceSignal] = []
 
     private static let frameDefaultsKey = "panelFrame"
@@ -53,8 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         if let panel { Self.saveFrame(panel.frame) }
-        frameObservers.forEach(NotificationCenter.default.removeObserver)
-        frameObservers.removeAll()
+        NotificationCenter.default.removeObserver(self)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -63,14 +61,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func observeFrameChanges(on panel: NSPanel) {
         let nc = NotificationCenter.default
-        let save: @Sendable (Notification) -> Void = { notification in
-            MainActor.assumeIsolated {
-                guard let window = notification.object as? NSWindow else { return }
-                AppDelegate.saveFrame(window.frame)
-            }
-        }
-        frameObservers.append(nc.addObserver(forName: NSWindow.didMoveNotification, object: panel, queue: .main, using: save))
-        frameObservers.append(nc.addObserver(forName: NSWindow.didResizeNotification, object: panel, queue: .main, using: save))
+        nc.addObserver(self, selector: #selector(windowFrameDidChange(_:)),
+                       name: NSWindow.didMoveNotification, object: panel)
+        nc.addObserver(self, selector: #selector(windowFrameDidChange(_:)),
+                       name: NSWindow.didResizeNotification, object: panel)
+    }
+
+    @objc private func windowFrameDidChange(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        Self.saveFrame(window.frame)
     }
 
     private static func saveFrame(_ frame: NSRect) {

@@ -172,7 +172,7 @@ enum ModelStyle {
     }
 }
 
-enum Formatting {
+@MainActor enum Formatting {
     private static let groupedFormatter: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .decimal
