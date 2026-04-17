@@ -34,6 +34,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         observeFrameChanges(on: panel)
         installSignalHandlers()
         NSApp.activate(ignoringOtherApps: true)
+
+        // SwiftUI may have eagerly created a "Settings" window (from the
+        // Settings { EmptyView() } scene used to suppress the default WindowGroup).
+        // Close it immediately; we manage our own window lifecycle via the panel.
+        DispatchQueue.main.async { [weak self] in
+            for window in NSApp.windows where window !== self?.panel {
+                window.close()
+            }
+        }
     }
 
     private func installSignalHandlers() {
@@ -56,7 +65,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        true
+        // Never quit on window close — the floating panel has its own X button
+        // that calls NSApp.terminate() explicitly. Returning true here caused
+        // the blank Settings window closing to kill the app.
+        false
     }
 
     private func observeFrameChanges(on panel: NSPanel) {
