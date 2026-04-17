@@ -17,13 +17,13 @@ if [ ! -d "$APP_DIR" ]; then
     exit 1
 fi
 
-echo "==> Staging DMG contents…"
+echo "==> Staging DMG contents..."
 rm -rf "$STAGING"
 mkdir -p "$STAGING"
 cp -R "$APP_DIR" "$STAGING/"
 ln -s /Applications "$STAGING/Applications"
 
-echo "==> Creating DMG at $DMG_PATH…"
+echo "==> Creating DMG at $DMG_PATH ..."
 rm -f "$DMG_PATH"
 hdiutil create \
     -volname "$DISPLAY_NAME" \
