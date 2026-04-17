@@ -11,7 +11,7 @@ VERSION="${VERSION:-0.0.0-dev}"
 BUILD_DIR="build"
 APP_DIR="$BUILD_DIR/$DISPLAY_NAME.app"
 
-echo "==> Building release binary…"
+echo "==> Building release binary..."
 # Don't pass --arch: on Apple Silicon (both local and macos-14 runners) the
 # default native build produces an arm64 binary. Passing --arch arm64
 # explicitly can trip SwiftPM with "error: fatalError" on some toolchains.
@@ -34,7 +34,7 @@ if [ -z "$BIN_PATH" ]; then
 fi
 echo "==> Found binary at $BIN_PATH"
 
-echo "==> Assembling .app bundle at $APP_DIR…"
+echo "==> Assembling .app bundle at $APP_DIR ..."
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS"
 mkdir -p "$APP_DIR/Contents/Resources"
@@ -44,10 +44,10 @@ chmod +x "$APP_DIR/Contents/MacOS/$EXECUTABLE"
 
 sed "s/__VERSION__/$VERSION/g" resources/Info.plist > "$APP_DIR/Contents/Info.plist"
 
-echo "==> Ad-hoc codesigning…"
+echo "==> Ad-hoc codesigning..."
 codesign --force --deep --sign - --options runtime "$APP_DIR"
 
-echo "==> Verifying signature…"
+echo "==> Verifying signature..."
 codesign --verify --verbose=2 "$APP_DIR"
 
 echo "==> Done."
