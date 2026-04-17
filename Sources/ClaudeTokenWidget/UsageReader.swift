@@ -97,6 +97,7 @@ struct UsageReader: Sendable {
             }
 
             let model = (message["model"] as? String) ?? "unknown"
+            guard model != "<synthetic>" else { continue }
             var entry = perModel[model] ?? ModelUsage(model: model)
             entry.input += (usage["input_tokens"] as? Int) ?? 0
             entry.cacheCreation += (usage["cache_creation_input_tokens"] as? Int) ?? 0
